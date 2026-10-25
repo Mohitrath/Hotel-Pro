@@ -1,9 +1,6 @@
 require('dotenv').config();
 const connectDB = require('./config/db');
-const User = require('./models/User');
 const Room = require('./models/Room');
-const Booking = require('./models/Booking');
-const Payment = require('./models/Payment');
 
 const img = (id) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=900&q=70`;
 
@@ -23,28 +20,20 @@ const rooms = [
 ];
 
 (async () => {
+  if (!process.env.MONGO_URI) throw new Error('MONGO_URI is missing. Set it in backend/.env before seeding.');
   await connectDB();
-  await Promise.all([User.deleteMany(), Room.deleteMany(), Booking.deleteMany(), Payment.deleteMany()]);
-
-  // create() (not insertMany) so the password hashing hook runs
-  await User.create([
-    { name: 'Admin', email: 'admin@hotelpro.com', password: 'Admin@123', role: 'admin', phone: '9000000001' },
-    { name: 'Front Desk', email: 'staff@hotelpro.com', password: 'Staff@123', role: 'staff', phone: '9000000002' },
-    { name: 'Demo Guest', email: 'guest@hotelpro.com', password: 'Guest@123', role: 'guest', phone: '9000000003' },
-  ]);
-
-  await Room.insertMany(
-    rooms.map(([number, type, floor, price, capacity, amenities, description, photo, status]) => ({
-      number, type, floor, price, capacity, amenities, description, image: img(photo), status: status || 'available',
-    }))
-  );
-
-  console.log('Seed complete.\n');
-  console.log('  Admin : admin@hotelpro.com / Admin@123');
-  console.log('  Staff : staff@hotelpro.com / Staff@123');
-  console.log('  Guest : guest@hotelpro.com / Guest@123');
+  let insertedOrUpdated = 0;
+  for (const [number, type, floor, price, capacity, amenities, description, photo, status] of rooms) {
+    await Room.updateOne(
+      { number },
+      { $set: { number, type, floor, price, capacity, amenities, description, image: img(photo), status: status || 'available' } },
+      { upsert: true, runValidators: true }
+    );
+    insertedOrUpdated += 1;
+  }
+  console.log(`Room seed complete: ${insertedOrUpdated} rooms inserted/updated. Existing users, bookings, and payments were not deleted.`);
   process.exit(0);
-})().catch((e) => {
-  console.error(e);
+})().catch((err) => {
+  console.error('Room seed failed:', err.message);
   process.exit(1);
 });
