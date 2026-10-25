@@ -18,20 +18,43 @@ const allowedOrigins = new Set([
   ...(process.env.CLIENT_URL || '').split(',').map((origin) => origin.trim()).filter(Boolean),
 ]);
 
+function isAllowedOrigin(origin) {
+  if (!origin || allowedOrigins.has(origin)) return true;
+  try {
+    const parsed = new URL(origin);
+    // Vercel generates a distinct hostname for each production/preview deploy.
+    // Permit only HTTPS Vercel-hosted frontends in addition to explicit origins.
+    return parsed.protocol === 'https:' && parsed.hostname.endsWith('.vercel.app');
+  } catch {
+    return false;
+  }
+}
+
 app.use(helmet());
 app.use(cors({
   origin(origin, callback) {
-    if (!origin || allowedOrigins.has(origin)) return callback(null, true);
+    if (isAllowedOrigin(origin)) return callback(null, true);
     return callback(new Error('Origin not allowed by CORS'));
   },
   credentials: true,
+  methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 204,
+}));
+app.options('*', cors({
+  origin(origin, callback) {
+    if (isAllowedOrigin(origin)) return callback(null, true);
+    return callback(new Error('Origin not allowed by CORS'));
+  },
+  credentials: true,
+  methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 204,
 }));
 app.use(express.json({ limit: '1mb' }));
 app.use(sanitize);
 if (process.env.NODE_ENV !== 'test') app.use(morgan('dev'));
 
-// Vercel executes the exported app without running server.js. Connect lazily and
-// cache the promise across warm serverless invocations.
 let mongoConnectionPromise;
 let seedPromise;
 async function ensureMongoConnected() {
@@ -48,8 +71,6 @@ async function ensureMongoConnected() {
     await mongoConnectionPromise;
   }
 
-  // Seed demo room records idempotently. This never deletes users, bookings,
-  // payments, or existing room records, and avoids requiring a local shell.
   if (!seedPromise) {
     const img = (id) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=900&q=70`;
     const rooms = [
