@@ -1,462 +1,217 @@
-<<<<<<< HEAD
-# HotelPro – Hotel Management System (MERN)
-
-Secure, scalable hotel management: room inventory, real-time availability, bookings, guest management,
-payments, and an admin dashboard. Stack: **MongoDB, Express, React (Vite), Node.js, JWT, Bootstrap**.
-
-## Quick start
-
-Prerequisites: Node.js 16+ (18+ recommended), npm 8+, MongoDB running locally (or an Atlas URI).
-
-```bash
-# 1) Backend
-cd backend
-npm install
-cp .env.example .env        # (a ready-to-use .env is already included for local dev)
-npm run seed                # creates demo users + 12 rooms
-npm run dev                 # API on http://localhost:5000
-
-# 2) Frontend (new terminal)
-cd frontend
-npm install
-npm run dev                 # App on http://localhost:5173
-```
-
-Demo logins (created by `npm run seed`):
-
-| Role  | Email               | Password   |
-|-------|---------------------|------------|
-| Admin | admin@hotelpro.com  | Admin@123  |
-| Staff | staff@hotelpro.com  | Staff@123  |
-| Guest | guest@hotelpro.com  | Guest@123  |
-
-> Change `JWT_SECRET` in `backend/.env` before deploying anywhere.
-
-## Features
-
-**Guests**
-- Register / log in (JWT), edit profile, change password
-- Search rooms by dates, guests, type, price (booked rooms are excluded automatically)
-- Book a room (price, 12 % tax and total computed server-side), pay by card or UPI, cancel (auto-refund)
-- Unpaid reservations hold the room for 30 minutes, then expire automatically
-
-**Staff** (`/admin`)
-- Dashboard: occupancy, revenue (6-month chart), arrivals / departures today, bookings by status
-- Rooms: add / edit, set maintenance
-- Bookings: search & filter, confirm → check-in → check-out, collect payment (incl. cash), cancel
-- Guests: search, view stay history
-- Payments: full transaction ledger
-
-**Admin** (everything staff can do, plus)
-- Delete rooms, create staff/admin accounts, change roles, delete users
-
-## Security
-- Passwords hashed with bcrypt (12 rounds); JWT auth; role-based authorization (guest / staff / admin)
-- Public registration can only ever create `guest` accounts
-- `helmet` headers, CORS allow-list, request body size limit, rate limiting on `/api/auth`
-- NoSQL-injection sanitising middleware; Mongoose schema validation
-- Card numbers are validated in memory and **never stored** (only last 4 digits)
-- Guests can only read / pay / cancel their own bookings
-
-## Payments
-Payments run through a **simulated gateway** (see `controllers/paymentController.js`, block marked `GATEWAY`).
-Test cards: `4242 4242 4242 4242` succeeds, `4000 0000 0000 0002` is declined. To go live, replace that block
-with Stripe / Razorpay (create the order server-side and verify the webhook/signature before marking paid).
-
-## API overview (`/api`)
-
-| Area | Endpoints |
-|------|-----------|
-| Auth | `POST /auth/register`, `POST /auth/login`, `GET/PUT /auth/me` |
-| Rooms | `GET /rooms` (filters: `checkIn, checkOut, guests, type, minPrice, maxPrice`), `GET /rooms/:id`, `GET /rooms/:id/booked-dates`, `GET /rooms/manage/all` *(staff)*, `POST /rooms` *(staff)*, `PUT /rooms/:id` *(staff)*, `DELETE /rooms/:id` *(admin)* |
-| Bookings | `POST /bookings`, `GET /bookings/my`, `GET /bookings/:id`, `PUT /bookings/:id/cancel`, `GET /bookings` *(staff)*, `PUT /bookings/:id/status` *(staff)* |
-| Payments | `POST /payments`, `GET /payments/my`, `GET /payments` *(staff)* |
-| Users | `GET /users`, `GET /users/:id` *(staff)*, `POST /users`, `PUT /users/:id/role`, `DELETE /users/:id` *(admin)* |
-| Dashboard | `GET /dashboard/stats` *(staff)* |
-
-Send the token as `Authorization: Bearer <token>`. Errors are `{ "message": "..." }`.
-
-## Testing
-`backend/test/smoke.test.js` is an end-to-end API test (auth, RBAC, overlap prevention, payments, refunds, expiry, dashboard):
-=======
 <div align="center">
 
 # 🏨 HotelPro
+### A modern hotel booking and management platform
 
-### A smarter way to manage hotel stays, rooms, guests, and reservations.
+**Discover rooms · Manage reservations · Streamline hotel operations**
 
-A full-stack hotel management application built with **React, Vite, Node.js, Express, and MongoDB**.
+<img src="screenshots/01-home.png" alt="HotelPro home page" width="900">
 
-<p>
-  <img src="https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React 18">
-  <img src="https://img.shields.io/badge/Node.js-Backend-339933?style=for-the-badge&logo=nodedotjs&logoColor=white" alt="Node.js">
-  <img src="https://img.shields.io/badge/Express-API-000000?style=for-the-badge&logo=express&logoColor=white" alt="Express">
-  <img src="https://img.shields.io/badge/MongoDB-Database-47A248?style=for-the-badge&logo=mongodb&logoColor=white" alt="MongoDB">
-  <img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="License">
-</p>
-
-**Room discovery · Reservation management · Payments demo · Role-based admin dashboard**
+[Features](#-features) · [Screenshots](#-screenshots) · [Tech Stack](#-tech-stack) · [Getting Started](#-getting-started)
 
 </div>
 
 ---
 
-## 📚 Table of Contents
-
-- [✨ Overview](#-overview)
-- [🚀 Features](#-features)
-- [🧰 Tech Stack](#-tech-stack)
-- [🖼️ Screenshots](#️-screenshots)
-- [🏗️ Project Structure](#️-project-structure)
-- [⚙️ Getting Started](#️-getting-started)
-- [🔐 Demo Accounts](#-demo-accounts)
-- [💳 Payment Demo](#-payment-demo)
-- [🔌 API Overview](#-api-overview)
-- [🛡️ Security Notes](#️-security-notes)
-- [🧪 Testing](#-testing)
-- [📦 Production Build](#-production-build)
-- [🗺️ Roadmap](#️-roadmap)
-- [🤝 Contributing](#-contributing)
-- [📄 License](#-license)
-
 ## ✨ Overview
 
-**HotelPro** is a full-stack hotel management system designed to make the reservation lifecycle easier to manage. Guests can explore rooms, book stays, manage their reservations, and try a simulated payment flow. Authorized staff can manage room inventory, guest records, bookings, payments, and hotel dashboard statistics.
+**HotelPro** is a full-stack hotel booking application. Guests can browse rooms, check availability, make bookings, and review reservations. Staff and administrators can manage rooms, bookings, guest accounts, and hotel operations from a dedicated dashboard.
 
-The application uses a React frontend and an Express REST API backed by MongoDB. JWT authentication and role-based access control separate guest, staff, and administrator capabilities.
+**Live demo:** [Open HotelPro](https://frontend-two-pi-55.vercel.app/)
 
 ## 🚀 Features
 
-### 🧳 For guests
-- Create an account and sign in securely.
-- Browse rooms and filter availability by dates, guest count, room type, and price.
-- View room details and booked dates.
-- Create reservations with server-calculated pricing and tax.
-- View personal bookings and cancel eligible reservations.
-- View a profile and manage account details.
-- Try the simulated card/UPI payment experience.
+### For guests
+- 🛏️ Browse rooms by type, capacity, amenities, floor, and nightly price.
+- 🔎 Search availability using dates, guest count, room type, and price filters.
+- 🔐 Register and log in with token-based authentication.
+- 📅 View personal bookings and reservation statuses.
+- 💳 Demo checkout with Card and UPI payment options.
+- 📱 Responsive desktop and mobile layout.
 
-### 🧑‍💼 For staff
-- View dashboard statistics, including occupancy, revenue, arrivals, and departures.
-- Add and update room information and mark rooms for maintenance.
-- Search and filter reservations.
-- Move bookings through confirmation, check-in, and check-out workflows.
-- Record payments, including cash payments.
-- Search guest records and review stay history.
-- Access the payment ledger.
+### For staff and administrators
+- 📊 Dashboard overview of rooms, occupancy, bookings, and revenue.
+- 🏨 Create, edit, and remove room listings.
+- 🧾 Search and manage bookings, check-ins, check-outs, confirmations, and cancellations.
+- 👥 View guest/staff accounts and manage roles.
+- 💰 Review payment and booking statuses.
 
-### 🛠️ For administrators
-- Access staff management features.
-- Delete rooms and users.
-- Create staff/admin accounts and update user roles.
-
-### 🔒 Security-minded implementation
-- Password hashing with bcrypt.
-- JWT-based authentication and role checks.
-- Public registration is restricted to guest accounts.
-- Security headers, CORS configuration, and authentication rate limiting.
-- Request sanitization and Mongoose validation.
-- Guests are restricted to their own bookings and payments.
-- Card numbers are not persisted; the demo payment flow retains only limited card metadata.
-
-> **Important:** The payment integration is simulated for development and demonstration. It is not a production payment gateway.
-
-## 🧰 Tech Stack
-
-| Layer | Technologies |
-|---|---|
-| Frontend | React 18, Vite, React Router, Axios |
-| UI | Bootstrap 5, Bootstrap Icons, custom CSS |
-| Backend | Node.js, Express |
-| Database | MongoDB, Mongoose |
-| Authentication | JSON Web Tokens (JWT), bcryptjs |
-| Security | Helmet, CORS, express-rate-limit, input sanitization |
-| Development | npm, Vite, Nodemon |
+### Engineering highlights
+- REST API separating frontend and backend.
+- MongoDB persistence.
+- Password hashing and role-based access controls.
+- Availability checks designed to prevent overlapping reservations.
+- Environment-based deployment configuration.
 
 ## 🖼️ Screenshots
 
-Want to showcase the UI? Add screenshots to a folder such as `docs/screenshots/`, then replace the examples below with your actual image paths.
+### Guest experience
 
-```md
-![HotelPro Home](docs/screenshots/home.png)
-![Room Listing](docs/screenshots/rooms.png)
-![Admin Dashboard](docs/screenshots/admin-dashboard.png)
-```
+| Home page | Room catalogue |
+|---|---|
+| ![Home page](screenshots/01-home.png) | ![Rooms](screenshots/02-rooms.png) |
 
-<!-- Once you add screenshots, you can display them here:
+| Login | My bookings |
+|---|---|
+| ![Login](screenshots/04-login.png) | ![My bookings](screenshots/05-my-bookings.png) |
+
+**Payment checkout**
+
+![Payment](screenshots/06-payment.png)
+
+### Admin experience
+
+| Dashboard | Room management |
+|---|---|
+| ![Admin dashboard](screenshots/07-admin-dashboard.png) | ![Room management](screenshots/08-admin-rooms.png) |
+
+| Booking management | Guest and staff management |
+|---|---|
+| ![Bookings](screenshots/09-admin-bookings.png) | ![Guests and staff](screenshots/10-admin-guests.png) |
+
+### Responsive design
+
 <p align="center">
-  <img src="docs/screenshots/home.png" alt="HotelPro home page" width="80%">
+  <img src="screenshots/12-mobile-home.png" alt="HotelPro mobile home page" width="300">
 </p>
--->
 
-## 🏗️ Project Structure
+## 🧰 Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | React, Vite, JavaScript, CSS |
+| Backend | Node.js, Express |
+| Database | MongoDB Atlas, Mongoose |
+| Authentication | JWT, hashed passwords |
+| Deployment | Vercel |
+
+## 🗂️ Project Structure
 
 ```text
-HotelPro/
-├── backend/
-│   ├── config/          # Database connection
-│   ├── controllers/     # Request handlers and business logic
-│   ├── middleware/      # Authentication, authorization, errors, sanitization
-│   ├── models/          # User, Room, Booking, Payment schemas
-│   ├── routes/          # API routes
-│   ├── test/            # API smoke test
-│   ├── utils/           # Helpers and availability logic
-│   ├── .env.example     # Environment variable template
-│   ├── app.js
-│   ├── server.js
-│   └── seed.js          # Demo users and room data
-└── frontend/
-    ├── src/
-    │   ├── components/  # Shared UI components
-    │   ├── context/     # Authentication context
-    │   ├── pages/       # Guest-facing pages
-    │   ├── pages/admin/ # Admin and staff pages
-    │   ├── api.js
-    │   ├── App.jsx
-    │   └── main.jsx
-    └── vite.config.js
+Hotel-Pro/
+├── frontend/        # React + Vite user interface
+├── backend/         # Express REST API
+├── screenshots/     # README screenshots
+└── README.md
 ```
 
 ## ⚙️ Getting Started
 
 ### Prerequisites
+- Node.js (LTS recommended)
+- npm
+- MongoDB database (for example, MongoDB Atlas)
+- Git
 
-Install the following before running the project:
-
-- **Node.js 18 or later** (recommended)
-- npm (included with Node.js)
-- MongoDB running locally, or a MongoDB Atlas database URI
-- Git (optional, for cloning the repository)
-
-### 1. Get the project
+### 1. Clone the repository
 
 ```bash
 git clone https://github.com/Mohitrath/Hotel-Pro.git
 cd Hotel-Pro
 ```
 
-If you downloaded the project as a ZIP, extract it and open the extracted project folder in your terminal.
-
-### 2. Configure the backend
+### 2. Start the backend
 
 ```bash
 cd backend
 npm install
 ```
 
-Create a local environment file by copying the example:
-
-**Windows PowerShell**
-```powershell
-Copy-Item .env.example .env
-```
-
-**Linux / macOS / WSL**
-```bash
-cp .env.example .env
-```
-
-Open `backend/.env` and configure your local values:
+Create `backend/.env`:
 
 ```env
 PORT=5000
-MONGO_URI=mongodb://127.0.0.1:27017/hotelpro
+NODE_ENV=development
+MONGO_URI=your_mongodb_connection_string
 JWT_SECRET=replace_with_a_long_random_secret
-JWT_EXPIRES_IN=7d
 CLIENT_URL=http://localhost:5173
-TAX_RATE=0.12
 ```
 
-For MongoDB Atlas, replace `MONGO_URI` with your Atlas connection string. Keep credentials private and URL-encode special characters in the database username or password when required.
+Start the backend using the script in `backend/package.json` (commonly `npm run dev`). If that script is unavailable, use the start command defined in the package file.
 
-### 3. Seed demo data
+### 3. Start the frontend
 
-With MongoDB available, run:
+In a second terminal:
 
 ```bash
-npm run seed
+cd frontend
+npm install
 ```
 
-This creates the demo accounts and sample rooms. Run the seed script only when you intend to create or reset the sample data.
+Create `frontend/.env`:
 
-### 4. Start the backend
+```env
+VITE_API_URL=http://localhost:5000/api
+```
+
+Run:
 
 ```bash
 npm run dev
 ```
 
-The API should be available at:
+Open the local URL printed by Vite, usually `http://localhost:5173`.
 
-- API base: `http://localhost:5000/api`
+## ☁️ Deployment
 
-Keep this terminal running.
+### Backend on Vercel
+Configure these environment variables in **Vercel → Project → Settings → Environment Variables**:
 
-### 5. Start the frontend
+- `MONGO_URI`
+- `JWT_SECRET`
+- `NODE_ENV=production`
+- `CLIENT_URL` — deployed frontend origin
 
-Open a second terminal from the project root:
+Redeploy after changing environment variables.
 
-```bash
-cd frontend
-npm install
-npm run dev
+### Frontend on Vercel
+Set:
+
+```env
+VITE_API_URL=https://YOUR-BACKEND-DOMAIN/api
 ```
 
-Open the local URL printed by Vite, normally:
+Replace the example domain with the actual backend URL. Variables prefixed with `VITE_` are exposed to browser code; never put passwords or private tokens in them.
 
-- **Frontend:** `http://localhost:5173`
+### Verify the API
+Open `https://YOUR-BACKEND-DOMAIN/api/health`. A healthy response should confirm that the API is running and, if supported by the backend, that the database is connected. If the frontend shows a network/database error, check backend logs, `MONGO_URI`, MongoDB Atlas Network Access, and CORS settings.
 
-### 6. Frontend API configuration
+## 🔒 Security Notes
 
-Check `frontend/src/api.js` for the API base URL. If your backend runs at a different host or port, update the configuration accordingly. For a production Vite build, configure `VITE_API_URL` if the app's API client is set up to read it.
+- Keep database credentials and JWT secrets private.
+- Rotate credentials that have been exposed.
+- Restrict MongoDB Atlas network access where practical; avoid `0.0.0.0/0` unless you understand the implications.
+- The payment UI is a demo, not a production payment integration. Do not enter real payment credentials.
+- Before production use, add validation, rate limiting, secure session/token handling, backups, logging, and tests.
 
-## 🔐 Demo Accounts
+## 🧪 Suggested Test Checklist
 
-After running `npm run seed`, the current seed setup provides these development accounts:
-
-| Role | Email | Password |
-|---|---|---|
-| Administrator | `admin@hotelpro.com` | `Admin@123` |
-| Staff | `staff@hotelpro.com` | `Staff@123` |
-| Guest | `guest@hotelpro.com` | `Guest@123` |
-
-Use these accounts for local testing only. **Change or remove demo credentials before deploying publicly.** Do not use these passwords for real accounts.
-
-## 💳 Payment Demo
-
-HotelPro currently uses a **simulated payment gateway**. It is intended for testing the application workflow, not for processing real money.
-
-| Test card | Result |
-|---|---|
-| `4242 4242 4242 4242` | Simulated success |
-| `4000 0000 0000 0002` | Simulated decline |
-
-Use a future expiry date and any required test CVV if requested by the form. Do not enter real payment card details.
-
-For real payments, integrate a provider such as Razorpay or Stripe using server-side order creation and verified webhook/signature handling before marking a payment as successful.
-
-## 🔌 API Overview
-
-The backend exposes REST endpoints under `/api`.
-
-| Area | Example endpoints | Access |
-|---|---|---|
-| Authentication | `POST /auth/register`, `POST /auth/login`, `GET /auth/me`, `PUT /auth/me` | Public / authenticated |
-| Rooms | `GET /rooms`, `GET /rooms/:id`, `GET /rooms/:id/booked-dates` | Public |
-| Room management | `GET /rooms/manage/all`, `POST /rooms`, `PUT /rooms/:id` | Staff / admin |
-| Bookings | `POST /bookings`, `GET /bookings/my`, `GET /bookings/:id`, `PUT /bookings/:id/cancel` | Authenticated; ownership rules apply |
-| Booking operations | `GET /bookings`, `PUT /bookings/:id/status` | Staff / admin |
-| Payments | `POST /payments`, `GET /payments/my` | Authenticated |
-| Payment ledger | `GET /payments` | Staff / admin |
-| Users | `GET /users`, `GET /users/:id` | Staff / admin |
-| User administration | `POST /users`, `PUT /users/:id/role`, `DELETE /users/:id` | Role-restricted |
-| Dashboard | `GET /dashboard/stats` | Staff / admin |
-
-For protected endpoints, send the access token in the request header:
-
-```http
-Authorization: Bearer YOUR_JWT_TOKEN
-```
-
-Errors are returned as JSON with a `message` field. See `backend/routes/` and `backend/controllers/` for implementation details.
-
-## 🛡️ Security Notes
-
-Before deploying:
-
-- [ ] Ensure `.env` files and secrets are excluded from Git.
-- [ ] Generate a strong, unique `JWT_SECRET`.
-- [ ] Use a production MongoDB user with least-privilege access.
-- [ ] Restrict `CLIENT_URL` / CORS to your deployed frontend origin.
-- [ ] Replace simulated payments with a real provider integration if needed.
-- [ ] Change or remove demo accounts and passwords.
-- [ ] Use HTTPS and review production logging and error handling.
-- [ ] Never commit database connection strings, API keys, or payment credentials.
-
-## 🧪 Testing
-
-The backend includes an API smoke test covering key flows such as authentication, access control, booking overlap checks, payments, refunds, expiry, and dashboard data.
-
-Use a **disposable test database** because the test removes its test database after execution:
->>>>>>> d243a88d8fa0f4933f8f77fecd9b7a20d371d45b
-
-```bash
-cd backend
-TEST_MONGO_URI=mongodb://127.0.0.1:27017/hotelpro_test node test/smoke.test.js
-```
-<<<<<<< HEAD
-(It drops that database afterwards – use a throw-away name.) Import the endpoints into Postman for manual testing.
-
-## Project structure
-```
-backend/   server.js, app.js, seed.js, config/, models/, controllers/, routes/, middleware/, utils/, test/
-frontend/  src/{api.js, App.jsx, context/, components/, pages/, pages/admin/}
-```
-
-## Production build
-```bash
-cd frontend && npm run build        # outputs frontend/dist
-```
-Serve `dist/` from any static host and set `VITE_API_URL` (e.g. `https://api.example.com/api`) at build time,
-and set `CLIENT_URL` on the backend to your site's origin for CORS.
-
-## Known limitations / next steps
-- Payment gateway is simulated (see above)
-- Overlap check is done in application code; for very high concurrency add a Mongo transaction or unique slot locking
-- No email notifications yet (add nodemailer in `bookingController` after confirmation)
-=======
-
-In Windows PowerShell, set the variable first:
-
-```powershell
-$env:TEST_MONGO_URI="mongodb://127.0.0.1:27017/hotelpro_test"
-node test/smoke.test.js
-```
-
-## 📦 Production Build
-
-Build the frontend:
-
-```bash
-cd frontend
-npm install
-npm run build
-```
-
-Vite generates production assets in `frontend/dist/`.
-
-For deployment, host the frontend on a static hosting service and deploy the backend separately. Set the frontend API URL to your deployed backend and configure the backend's `CLIENT_URL`, `MONGO_URI`, and `JWT_SECRET` using the hosting provider's environment-variable settings. Never upload `.env` files or secrets to the repository.
-
-## 🗺️ Roadmap
-
-Potential improvements:
-
-- [ ] Real payment gateway integration with verified webhooks
-- [ ] Email confirmations and reservation notifications
-- [ ] Automated tests in CI
-- [ ] Booking and occupancy analytics enhancements
-- [ ] Production deployment guide and UI screenshots
+- [ ] Home page loads and featured rooms appear.
+- [ ] Room search returns results for valid dates and guest counts.
+- [ ] Registration and login work.
+- [ ] Guests can create and view bookings.
+- [ ] Overlapping bookings are rejected.
+- [ ] Demo payment updates the expected booking/payment state.
+- [ ] Admin can manage rooms and bookings.
+- [ ] Unauthorized users cannot access admin-only API routes.
+- [ ] Mobile and desktop layouts work.
+- [ ] Backend health endpoint and database connection are healthy.
 
 ## 🤝 Contributing
 
-Contributions and suggestions are welcome.
-
 1. Fork the repository.
 2. Create a feature branch: `git checkout -b feature/your-feature`.
-3. Make and test your changes.
-4. Commit your work: `git commit -m "Add your feature"`.
-5. Push the branch and open a pull request.
+3. Commit your changes.
+4. Push the branch and open a pull request.
 
 ## 📄 License
 
-No license file was included in the project archive. Add a `LICENSE` file and update this section before describing the project as MIT-licensed or granting reuse rights.
+No license is specified in this README. Add a `LICENSE` file if you intend to distribute the project under an open-source license.
 
 ---
 
 <div align="center">
 
-**Built with ☕ and code — HotelPro**
-
-If you find a bug or have an improvement idea, open an issue in the repository.
+**Built with ❤️ for smoother hotel stays and simpler hotel operations.**
 
 </div>
->>>>>>> d243a88d8fa0f4933f8f77fecd9b7a20d371d45b
