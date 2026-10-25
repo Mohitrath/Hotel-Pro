@@ -1,0 +1,42 @@
+:root {
+  --hp-primary: #1f3a5f;
+  --hp-accent: #c8963e;
+}
+body { background: #f6f7f9; }
+.bg-hp { background: var(--hp-primary) !important; }
+.text-accent { color: var(--hp-accent) !important; }
+.btn-accent { background: var(--hp-accent); border-color: var(--hp-accent); color: #fff; }
+.btn-accent:hover { background: #b18232; border-color: #b18232; color: #fff; }
+
+.hero {
+  background: linear-gradient(rgba(20, 35, 58, .72), rgba(20, 35, 58, .72)),
+    url('https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1600&q=70') center/cover,
+    var(--hp-primary);
+  color: #fff;
+  padding: 110px 0 90px;
+}
+.search-box { margin-top: -50px; }
+
+.room-card { transition: transform .15s, box-shadow .15s; }
+.room-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,.12); }
+.room-img { height: 200px; object-fit: cover; width: 100%; }
+.room-img-fallback {
+  height: 200px; display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #1f3a5f, #3b6ea5); color: rgba(255,255,255,.8); font-size: 3rem;
+}
+
+.admin-wrap { display: flex; min-height: calc(100vh - 56px); }
+.admin-side { width: 220px; background: #fff; border-right: 1px solid #e3e6ea; flex-shrink: 0; }
+.admin-side .nav-link { color: #444; border-radius: 6px; margin: 2px 8px; }
+.admin-side .nav-link.active { background: var(--hp-primary); color: #fff; }
+.admin-main { flex: 1; padding: 24px; min-width: 0; }
+@media (max-width: 768px) {
+  .admin-wrap { flex-direction: column; }
+  .admin-side { width: 100%; border-right: 0; border-bottom: 1px solid #e3e6ea; }
+  .admin-side .nav { flex-direction: row !important; overflow-x: auto; flex-wrap: nowrap; }
+}
+
+.stat-card { border: 0; border-left: 4px solid var(--hp-accent); }
+.bar-col { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 160px; flex: 1; }
+.bar { width: 60%; background: var(--hp-primary); border-radius: 4px 4px 0 0; min-height: 2px; }
+.modal-backdrop-custom { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 1050; overflow-y: auto; }
