@@ -3,6 +3,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
+const mongoose = require('mongoose');
 
 const routes = require('./routes');
 const sanitize = require('./middleware/sanitize');
@@ -22,7 +23,6 @@ app.use(helmet());
 app.use(
   cors({
     origin(origin, callback) {
-      // Requests without an Origin header (health checks/server-to-server) are allowed.
       if (!origin || allowedOrigins.has(origin)) return callback(null, true);
       return callback(new Error('Origin not allowed by CORS'));
     },
@@ -32,6 +32,45 @@ app.use(
 app.use(express.json({ limit: '1mb' }));
 app.use(sanitize);
 if (process.env.NODE_ENV !== 'test') app.use(morgan('dev'));
+
+// Vercel runs the exported Express app directly, so server.js's connectDB()
+// startup code is not guaranteed to run. Connect lazily for API requests and
+// reuse the connection across warm serverless invocations.
+let mongoConnectionPromise;
+async function ensureMongoConnected() {
+  if (mongoose.connection.readyState === 1) return;
+  if (!process.env.MONGO_URI) throw new Error('MONGO_URI is not configured');
+  if (!mongoConnectionPromise) {
+    mongoConnectionPromise = mongoose.connect(process.env.MONGO_URI, {
+      serverSelectionTimeoutMS: 10000,
+    }).catch((err) => {
+      mongoConnectionPromise = undefined;
+      throw err;
+    });
+  }
+  await mongoConnectionPromise;
+}
+
+app.get('/api/health', (_req, res) => {
+  res.json({
+    status: 'ok',
+    database: mongoose.connection.readyState === 1 ? 'connected' : 'not-connected',
+    time: new Date(),
+  });
+});
+
+// Do not let Mongoose buffer queries forever when Atlas is unreachable.
+app.use('/api', async (req, res, next) => {
+  try {
+    await ensureMongoConnected();
+    next();
+  } catch (err) {
+    console.error('MongoDB connection failed:', err.message);
+    res.status(503).json({
+      message: 'Database unavailable. Check MONGO_URI and MongoDB Atlas Network Access.',
+    });
+  }
+});
 
 // brute-force protection on login / register
 app.use(
@@ -45,9 +84,7 @@ app.use(
   })
 );
 
-app.get('/api/health', (_req, res) => res.json({ status: 'ok', time: new Date() }));
 app.use('/api', routes);
-
 app.use(notFound);
 app.use(errorHandler);
 
