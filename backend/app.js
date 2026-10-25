@@ -4,6 +4,7 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const mongoose = require('mongoose');
+const path = require('path');
 
 const routes = require('./routes');
 const Room = require('./models/Room');
@@ -54,6 +55,9 @@ app.options('*', cors({
 app.use(express.json({ limit: '1mb' }));
 app.use(sanitize);
 if (process.env.NODE_ENV !== 'test') app.use(morgan('dev'));
+
+// Serve static files from public directory (includes Vercel Analytics)
+app.use(express.static(path.join(__dirname, 'public')));
 
 let mongoConnectionPromise;
 let seedPromise;
