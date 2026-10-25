@@ -5,7 +5,7 @@
 
 **Discover rooms · Manage reservations · Streamline hotel operations**
 
-<img src="screenshots/01-home.png" alt="HotelPro home page" width="900">
+<img src="screenshots/01-home.svg" alt="HotelPro home page" width="900">
 
 [Features](#-features) · [Screenshots](#-screenshots) · [Tech Stack](#-tech-stack) · [Getting Started](#-getting-started)
 
@@ -49,30 +49,20 @@
 
 | Home page | Room catalogue |
 |---|---|
-| ![Home page](screenshots/01-home.png) | ![Rooms](screenshots/02-rooms.png) |
+| ![Home page](screenshots/01-home.svg) | ![Rooms](screenshots/02-rooms.svg) |
 
-| Login | My bookings |
-|---|---|
-| ![Login](screenshots/04-login.png) | ![My bookings](screenshots/05-my-bookings.png) |
-
-**Payment checkout**
-
-![Payment](screenshots/06-payment.png)
+**Login, bookings, and payment:** These flows are available in the [live HotelPro demo](https://frontend-two-pi-55.vercel.app/). The payment screen is a demo checkout; do not enter real payment credentials.
 
 ### Admin experience
 
-| Dashboard | Room management |
-|---|---|
-| ![Admin dashboard](screenshots/07-admin-dashboard.png) | ![Room management](screenshots/08-admin-rooms.png) |
+![Admin dashboard](screenshots/07-admin-dashboard.svg)
 
-| Booking management | Guest and staff management |
-|---|---|
-| ![Bookings](screenshots/09-admin-bookings.png) | ![Guests and staff](screenshots/10-admin-guests.png) |
+The admin dashboard illustration highlights room inventory, occupancy, revenue, and booking status. Sign in to the live demo with an authorized admin account to explore management screens.
 
 ### Responsive design
 
 <p align="center">
-  <img src="screenshots/12-mobile-home.png" alt="HotelPro mobile home page" width="300">
+  <img src="screenshots/12-mobile-home.svg" alt="HotelPro mobile home page" width="300">
 </p>
 
 ## 🧰 Tech Stack
@@ -91,7 +81,7 @@
 Hotel-Pro/
 ├── frontend/        # React + Vite user interface
 ├── backend/         # Express REST API
-├── screenshots/     # README screenshots
+├── screenshots/     # README illustrations and screenshots
 └── README.md
 ```
 
