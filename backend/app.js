@@ -10,10 +10,22 @@ const { notFound, errorHandler } = require('./middleware/error');
 
 const app = express();
 
+// Keep an explicit allowlist. CLIENT_URL may contain comma-separated production
+// and preview origins; the deployed frontend origin is included as a safe default.
+const allowedOrigins = new Set([
+  'https://frontend-two-pi-55.vercel.app',
+  'http://localhost:5173',
+  ...(process.env.CLIENT_URL || '').split(',').map((origin) => origin.trim()).filter(Boolean),
+]);
+
 app.use(helmet());
 app.use(
   cors({
-    origin: (process.env.CLIENT_URL || 'http://localhost:5173').split(','),
+    origin(origin, callback) {
+      // Requests without an Origin header (health checks/server-to-server) are allowed.
+      if (!origin || allowedOrigins.has(origin)) return callback(null, true);
+      return callback(new Error('Origin not allowed by CORS'));
+    },
     credentials: true,
   })
 );
